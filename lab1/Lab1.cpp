@@ -4,10 +4,13 @@
 #include <iomanip>
 #include <functional>
 #include <vector>
+#include "matmul.h"
 
 /* РџСЂРѕС†РµСЃСЃ 0 РІС‹РїРѕР»РЅСЏРµС‚ РЅРµРєСѓСЋ СЂР°Р±РѕС‚Сѓ.
  * РџСЂРѕС†РµСЃСЃС‹ 1-N РІС‹РїРѕР»РЅСЏСЋС‚СЃСЏ РІ РїРѕСЂСЏРґРєРµ, РѕРїСЂРµРґРµР»РµРЅРЅС‹Рј РіСЂР°С„РѕРј РІ РёРЅРґРёРІРёРґСѓР°Р»СЊРЅРѕРј
  * РІР°СЂРёР°РЅС‚Рµ.  */
+
+#define SIZE 100
 
 #define TAG_SYNC  1
 #define TAG_START 2
@@ -74,14 +77,17 @@ void notify_receive()
         // РџРµС‡Р°С‚СЊ СЃРѕРѕР±С‰РµРЅРёСЏ Рѕ РЅР°С‡Р°Р»Рµ СЂР°Р±РѕС‚С‹
         std::cout
             << "Process " << std::setw(2) << status.MPI_SOURCE
-            << " started: " << std::fixed << std::setw(6) << std::setprecision(3) << n.start
+            << " started: " << std::fixed << std::setw(6)
+                << std::setprecision(3) << n.start
             << std::endl;
     } else if (status.MPI_TAG == TAG_END) {
         // РџРµС‡Р°С‚СЊ СЃРѕРѕР±С‰РµРЅРёСЏ РѕР± РѕРєРѕРЅС‡Р°РЅРёРё СЂР°Р±РѕС‚С‹
         std::cout
             << "Process " << std::setw(2) << status.MPI_SOURCE
-            << " ended:   " << std::fixed << std::setw(6) << std::setprecision(3) << n.end
-            << " duration: " << std::fixed <<  std::setw(6) << std::setprecision(3) << n.duration
+            << " ended:   " << std::fixed << std::setw(6)
+                << std::setprecision(3) << n.end
+            << " duration: " << std::fixed <<  std::setw(6)
+                << std::setprecision(3) << n.duration
             << std::endl;
     }
 }
@@ -98,24 +104,46 @@ void do_work()
 
 void task_0()
 {
-    std::cout << "Start" << std::endl;
+    // РџРѕРґРіРѕС‚РѕРІРєР° РјР°С‚СЂРёС†
+    std::cout << "Prepare" << std::endl;
+    double *a = create_matrix(SIZE);
+    double *b = create_matrix(SIZE);
+    double* c = new double[SIZE * SIZE];
+
+    int matmul_count = 0;       // РєРѕР»РёС‡РµСЃС‚РІРѕ СѓРјРЅРѕР¶РµРЅРёР№ РјР°С‚СЂРёС†
+    double total_work_time = 0; // РѕР±С‰РµРµ РІСЂРµРјСЏ РІС‹РїРѕР»РЅРµРЅРёСЏ СЂР°Р±РѕС‚С‹
+    double t0 = MPI_Wtime();
+
     // Р—Р°РїСѓСЃРє РїСЂРѕС†РµСЃСЃРѕРІ
+    std::cout << "Start" << std::endl;
     sync_send(1);
     sync_send(2);
     sync_send(5);
     sync_send(6);
 
-
     int jobs_count = 12;
     int messages_count = jobs_count * 2;
     for (int i = 0; i < messages_count + 1; i++) {
+        // Р’С‹РїРѕР»РЅСЏРµРј СЂР°Р±РѕС‚Сѓ - СѓРјРЅРѕР¶Р°РµРј РјР°С‚СЂРёС†С‹
+        double t = matmul(a, b, c, SIZE);
+        // std::cout << "matmul duration " << t << std::endl;
+        matmul_count++;
+        total_work_time += t;
+
+        // РћР¶РёРґР°РµРј СЃРѕРѕР±С‰РµРЅРёСЏ РѕС‚ РїСЂРѕС†РµСЃСЃРѕРІ 1 - 7
         notify_receive();
     }
 
     // РћР¶РёРґР°РЅРёРµ РїРѕСЃР»РµРґРЅРµРіРѕ РїСЂРѕС†РµСЃСЃР°
-    std::cout << "wait" << std::endl;
     sync_recv(1);
     std::cout << "End" << std::endl;
+
+    // РћС‚С‡С‘С‚
+    double t1 = MPI_Wtime();
+    double total_time = t1 - t0;
+    std::cout << "Total time: " << std::setprecision(2) << total_time << std::endl;
+    std::cout << "Work: " << std::setprecision(2) << (total_work_time / total_time) * 100.0 << "%" << std::endl;
+    std::cout << "Matrix multiplication: " << matmul_count << " times" << std::endl;
 }
 
 void dbg_done()
