@@ -50,7 +50,7 @@ void notify_start(Notification& n)
     n.start = MPI_Wtime() - t0;
     n.end = 0;
     n.duration = 0;
-
+    // std::cout << "[" << rank << "]: start" << std::endl;
     MPI_Send(&n, sizeof(n), MPI_CHAR, 0, TAG_START, MPI_COMM_WORLD);
 }
 
@@ -59,7 +59,7 @@ void notify_end(Notification& n)
 {
     n.end = MPI_Wtime() - t0;
     n.duration = n.end - n.start;
-
+    // std::cout << "[" << rank << "]: end" << std::endl;
     MPI_Send(&n, sizeof(n), MPI_CHAR, 0, TAG_END, MPI_COMM_WORLD);
 }
 
@@ -99,12 +99,22 @@ void do_work()
 void task_0()
 {
     std::cout << "Start" << std::endl;
+    // Р—Р°РїСѓСЃРє РїСЂРѕС†РµСЃСЃРѕРІ
     sync_send(1);
     sync_send(2);
     sync_send(5);
     sync_send(6);
 
-    sync_recv(5);
+
+    int jobs_count = 12;
+    int messages_count = jobs_count * 2;
+    for (int i = 0; i < messages_count + 1; i++) {
+        notify_receive();
+    }
+
+    // РћР¶РёРґР°РЅРёРµ РїРѕСЃР»РµРґРЅРµРіРѕ РїСЂРѕС†РµСЃСЃР°
+    std::cout << "wait" << std::endl;
+    sync_recv(1);
     std::cout << "End" << std::endl;
 }
 
@@ -112,7 +122,6 @@ void dbg_done()
 {
     std::cout << "[" << rank << "] done" << std::endl;
 }
-
 
 void task_1()
 {
@@ -137,7 +146,7 @@ void task_1()
     do_work();
 
     // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 5
-    sync_send(5);
+    sync_send(0);
 }
 
 void task_2()
@@ -171,7 +180,7 @@ void task_3()
     do_work();
 
     // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 5
-    sync_send(5);
+    sync_send(0);
 }
 
 void task_4()
@@ -213,8 +222,6 @@ void task_5()
     do_work();
 
     // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 5
-    sync_recv(1);
-    sync_recv(3);
     sync_send(0);
 }
 
@@ -271,8 +278,6 @@ int main(int argc, char** argv)
     if (rank < tasks.size()) {
         tasks[rank]();
     }
-
-    dbg_done();
 
     MPI_Finalize();
 }
