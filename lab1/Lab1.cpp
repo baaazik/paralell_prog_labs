@@ -23,24 +23,24 @@ struct Notification {
 
 // Р’СЂРµРјСЏ РЅР°С‡Р°Р»Р° СЂР°Р±РѕС‚С‹ РїСЂРѕРіСЂР°РјРјС‹
 double t0;
+int size, rank;
 
-// Р¤СѓРЅРєС†РёСЏ РёРјРёС‚РёСЂСѓРµС‚ СЂР°Р±РѕС‚Сѓ РїСЂРѕС†РµСЃСЃР° - Р·Р°РґРµСЂР¶РєР°
-void do_work()
-{
-    Sleep(3000);
-}
 
 // Р‘Р»РѕРєРёСЂСѓСЋС‰Р°СЏ СЂС‚РїСЂР°РІРєР° СЃРѕРѕР±С‰РµРЅРёСЏ СЃРёРЅС…СЂРѕРЅРёР·Р°РёС†Рё СѓРєР°Р·Р°РЅРЅРѕРјСѓ РїСЂРѕС†РµСЃСЃСѓ
 void sync_send(int dest)
 {
+    // std::cout << "[" << rank << "]: send " << dest << std::endl;
     MPI_Send(NULL, 0, MPI_INT, dest, TAG_SYNC, MPI_COMM_WORLD);
+    // std::cout << "[" << rank << "]: send " << dest << " ok" << std::endl;
 }
 
 // РћР¶РёРґР°РЅРёРµ СЃРѕРѕР±С‰РµРЅРёСЏ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё РѕС‚ СѓРєР°Р·Р°РЅРЅРѕРіРѕ РїСЂРѕС†РµСЃСЃР°
 void sync_recv(int src)
 {
     MPI_Status status;
+    // std::cout << "[" << rank << "]: recv " << src << std::endl;
     MPI_Recv(NULL, 0, MPI_INT, src, TAG_SYNC, MPI_COMM_WORLD, &status);
+    // std::cout << "[" << rank << "]: recv " << src << " ok" << std::endl;
 }
 
 // Р‘Р»РѕРєРёСЂСѓСЋС‰Р°СЏ РѕС‚РїСЂР°РІРєР° РЅСѓР»РµРІРѕРјСѓ РїСЂРѕС†РµСЃСЃСѓ СѓРІРµРґРѕРјР»РµРЅРёСЏ Рѕ РЅР°С‡Р°Р»Рµ СЂР°Р±РѕС‚С‹
@@ -86,55 +86,180 @@ void notify_receive()
     }
 }
 
+// Р¤СѓРЅРєС†РёСЏ РёРјРёС‚РёСЂСѓРµС‚ СЂР°Р±РѕС‚Сѓ РїСЂРѕС†РµСЃСЃР° - Р·Р°РґРµСЂР¶РєР°
+void do_work()
+{
+    Notification n;
+    notify_start(n);
+    // std::cout << rank << std::endl;
+    Sleep(1000);
+    notify_end(n);
+}
+
 void task_0()
 {
     std::cout << "Start" << std::endl;
     sync_send(1);
-    notify_receive();
-    notify_receive();
-    notify_receive();
-    notify_receive();
-    sync_recv(2);
-    std::cout << "End\n" << std::endl;
+    sync_send(2);
+    sync_send(5);
+    sync_send(6);
+
+    sync_recv(5);
+    std::cout << "End" << std::endl;
 }
+
+void dbg_done()
+{
+    std::cout << "[" << rank << "] done" << std::endl;
+}
+
 
 void task_1()
 {
-    Notification n;
-
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 1
+    // 0 -> (1, 2, 5, 6)
     sync_recv(0);
-    notify_start(n);
-    //std::cout << "Task 1 begin" << std::endl;
     do_work();
-    notify_end(n);
-    //std::cout << "Task 1 end" << std::endl;
-    sync_send(2);
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 2
+    // (1, 5) -> (1, 4, 5)
+    sync_send(5);
+    sync_recv(5);
+    // send self
+    sync_send(4);
+    do_work();
+    
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 4
+    // (1, 2, 4) -> 1
+    sync_recv(2);
+    sync_recv(4);
+    // send self
+    do_work();
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 5
+    sync_send(5);
 }
 
 void task_2()
 {
-    Notification n;
-
-    sync_recv(1);
-    notify_start(n);
-    //std::cout << "Task 2 begin" << std::endl;
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 1
+    // 0 -> (1, 2, 5, 6)
+    sync_recv(0);
     do_work();
-    notify_end(n);
-    //std::cout << "Task 2 end" << std::endl;
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 3
+    // (2, 5, 6) -> (2, 3, 7)
+    sync_recv(5);
+    sync_recv(6);
+    // send self
+    sync_send(3);
+    sync_send(7);
+    do_work();
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 4
+    // (1, 2, 4) -> 1
+    sync_send(1);
+}
+
+void task_3()
+{
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 3
+    // (2, 5, 6) -> (2, 3, 7)
+    sync_recv(2);
+    sync_recv(5);
+    sync_recv(6);
+    do_work();
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 5
+    sync_send(5);
+}
+
+void task_4()
+{
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 2
+    // (1, 5) -> (1, 4, 5)
+    sync_recv(1);
+    sync_recv(5);
+    do_work();
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 4
+    // (1, 2, 4) -> 1
+    sync_send(1);
+}
+
+void task_5()
+{
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†Рё 1
+    // 0 -> (1, 2, 5, 6)
+    sync_recv(0);
+    do_work();
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 2
+    // (1, 5) -> (1, 4, 5)
+    sync_recv(1);
+    sync_send(1);
+    sync_send(4);
+    do_work();
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 3
+    // (2, 5, 6) -> (2, 3, 7)
+    sync_send(2);
+    sync_send(3);
+    sync_send(7);
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 6
+    // 7 -> 5
+    sync_recv(7);
+    do_work();
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 5
+    sync_recv(1);
+    sync_recv(3);
     sync_send(0);
+}
+
+void task_6()
+{
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 1
+    // 0 -> (1, 2, 5, 6)
+    sync_recv(0);
+    do_work();
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 3
+    // (2, 5, 6) -> (2, 3, 7)
+    sync_send(2);
+    sync_send(3);
+    sync_send(7);
+}
+
+void task_7()
+{
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 3
+    // (2, 5, 6) -> (2, 3, 7)
+    sync_recv(2);
+    sync_recv(5);
+    sync_recv(6);
+    do_work();
+
+    // РўРѕС‡РєР° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё 6
+    // 7 -> 5
+    sync_send(5);
 }
 
 // РЎРїРёСЃРѕРє Р·Р°РґР°С‡
 std::vector<std::function<void()>> tasks = {
     task_0,
     task_1,
-    task_2
+    task_2,
+    task_3,
+    task_4,
+    task_5,
+    task_6,
+    task_7
 };
 
 int main(int argc, char** argv)
 {
-    int size, rank;
-
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -146,6 +271,8 @@ int main(int argc, char** argv)
     if (rank < tasks.size()) {
         tasks[rank]();
     }
+
+    dbg_done();
 
     MPI_Finalize();
 }
