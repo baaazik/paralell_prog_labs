@@ -12,12 +12,12 @@
 #define SIZE 300
 
 // Время начала работы программы
-double t0;
-int size, rank;
+static double t0;
+static int size, rank;
 
 
 // Блокирующая ртправка сообщения синхронизаици указанному процессу
-void sync_send(int dest)
+static void sync_send(int dest)
 {
     // std::cout << "[" << rank << "]: send " << dest << std::endl;
     MPI_Send(NULL, 0, MPI_INT, dest, TAG_SYNC, MPI_COMM_WORLD);
@@ -25,7 +25,7 @@ void sync_send(int dest)
 }
 
 // Ожидание сообщения синхронизации от указанного процесса
-void sync_recv(int src)
+static void sync_recv(int src)
 {
     MPI_Status status;
     // std::cout << "[" << rank << "]: recv " << src << std::endl;
@@ -34,7 +34,7 @@ void sync_recv(int src)
 }
 
 // Блокирующая отправка нулевому процессу уведомления о начале работы
-void notify_start(Notification& n)
+static void notify_start(Notification& n)
 {
     //Notification n{ start - t0, 0, 0 };
     n.start = MPI_Wtime() - t0;
@@ -45,7 +45,7 @@ void notify_start(Notification& n)
 }
 
 // Блокирующая отправка нулевому процессу уведомления об окончании работы
-void notify_end(Notification& n)
+static void notify_end(Notification& n)
 {
     n.end = MPI_Wtime() - t0;
     n.duration = n.end - n.start;
@@ -54,7 +54,7 @@ void notify_end(Notification& n)
 }
 
 // Блокирующий прием уведомлений от процессов
-void notify_receive()
+static void notify_receive()
 {
     MPI_Status   status;
     Notification n;
@@ -81,7 +81,7 @@ void notify_receive()
 }
 
 // Функция имитирует работу процесса - задержка
-void do_work()
+static void do_work()
 {
     Notification n;
     notify_start(n);
@@ -90,7 +90,7 @@ void do_work()
     notify_end(n);
 }
 
-void task_0()
+static void task_0()
 {
     std::cout << "Work with blocking operations" << std::endl;
 
@@ -136,12 +136,12 @@ void task_0()
     std::cout << "Matrix multiplication: " << matmul_count << " times" << std::endl;
 }
 
-void dbg_done()
+static void dbg_done()
 {
     std::cout << "[" << rank << "] done" << std::endl;
 }
 
-void task_1()
+static void task_1()
 {
     // Точка синхронизации 1
     // 0 -> (1, 2, 5, 6)
@@ -167,7 +167,7 @@ void task_1()
     sync_send(0);
 }
 
-void task_2()
+static void task_2()
 {
     // Точка синхронизации 1
     // 0 -> (1, 2, 5, 6)
@@ -188,7 +188,7 @@ void task_2()
     sync_send(1);
 }
 
-void task_3()
+static void task_3()
 {
     // Точка синхронизации 3
     // (2, 5, 6) -> (2, 3, 7)
@@ -201,7 +201,7 @@ void task_3()
     sync_send(0);
 }
 
-void task_4()
+static void task_4()
 {
     // Точка синхронизации 2
     // (1, 5) -> (1, 4, 5)
@@ -214,7 +214,7 @@ void task_4()
     sync_send(1);
 }
 
-void task_5()
+static void task_5()
 {
     // Точка синхронизаци 1
     // 0 -> (1, 2, 5, 6)
@@ -243,7 +243,7 @@ void task_5()
     sync_send(0);
 }
 
-void task_6()
+static void task_6()
 {
     // Точка синхронизации 1
     // 0 -> (1, 2, 5, 6)
@@ -257,7 +257,7 @@ void task_6()
     sync_send(7);
 }
 
-void task_7()
+static void task_7()
 {
     // Точка синхронизации 3
     // (2, 5, 6) -> (2, 3, 7)
@@ -272,7 +272,7 @@ void task_7()
 }
 
 // Список задач
-std::vector<std::function<void()>> tasks = {
+static std::vector<std::function<void()>> tasks = {
     task_0,
     task_1,
     task_2,
