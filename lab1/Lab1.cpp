@@ -4,6 +4,7 @@
 
 int main(int argc, char** argv)
 {
-    run_mpi_block(&argc, &argv);
+    //run_mpi_block(&argc, &argv);
     //run_mpi_nonblock(&argc, &argv);
+    run_mpi_collective(&argc, &argv);
 }
