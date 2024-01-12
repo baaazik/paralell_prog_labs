@@ -132,7 +132,8 @@
     <ClCompile Include="Lab3.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="no_vectorizartion.h" />
+    <ClInclude Include="intrinsic.h" />
+    <ClInclude Include="serial.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

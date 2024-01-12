@@ -20,7 +20,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="no_vectorizartion.h">
+    <ClInclude Include="serial.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="intrinsic.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
